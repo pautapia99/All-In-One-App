@@ -1,54 +1,250 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import type { ComponentType } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '../../components/PrimaryButton';
+import { DashboardCard } from '../../components/DashboardCard';
+import {
+  BarChartIcon,
+  BookOpenIcon,
+  CalendarIcon,
+  ClockIcon,
+  GiftIcon,
+  ListChecksIcon,
+  UsersIcon,
+  type IconProps,
+} from '../../components/icons';
 import { useAuth } from '../../lib/AuthProvider';
 import { supabase } from '../../lib/supabase';
+import { colors, spacing, typography } from '../../lib/theme';
+
+// Módulos de la app. `route` queda vacío a propósito: las pantallas de destino
+// todavía no existen, así que por ahora solo registramos la navegación deseada.
+type ModuleKey =
+  | 'familia'
+  | 'listas'
+  | 'calendario'
+  | 'cumpleanos'
+  | 'presupuesto'
+  | 'comidas'
+  | 'recetas';
+
+type ModuleConfig = {
+  key: ModuleKey;
+  title: string;
+  subtitle: string;
+  icon: ComponentType<IconProps>;
+  span: 'full' | 'one';
+  accent?: boolean;
+};
+
+// Datos de ejemplo (mock): cada módulo mostrará su propio resumen real una vez
+// esté conectado a Supabase.
+const MODULES: ModuleConfig[] = [
+  {
+    key: 'familia',
+    title: 'Mi familia',
+    subtitle: '3 miembros',
+    icon: UsersIcon,
+    span: 'full',
+  },
+  {
+    key: 'listas',
+    title: 'Listas',
+    subtitle: '2 listas activas',
+    icon: ListChecksIcon,
+    span: 'one',
+  },
+  {
+    key: 'calendario',
+    title: 'Calendario',
+    subtitle: 'Próximo evento: hoy',
+    icon: CalendarIcon,
+    span: 'one',
+    accent: true,
+  },
+  {
+    key: 'cumpleanos',
+    title: 'Cumpleaños',
+    subtitle: 'Cumpleaños de Koda en 5 días',
+    icon: GiftIcon,
+    span: 'one',
+    accent: true,
+  },
+  {
+    key: 'presupuesto',
+    title: 'Presupuesto',
+    subtitle: 'Gastado este mes: 450 €',
+    icon: BarChartIcon,
+    span: 'one',
+  },
+  {
+    key: 'comidas',
+    title: 'Comidas',
+    subtitle: 'Menú de esta semana',
+    icon: ClockIcon,
+    span: 'one',
+  },
+  {
+    key: 'recetas',
+    title: 'Recetas',
+    subtitle: '12 recetas guardadas',
+    icon: BookOpenIcon,
+    span: 'full',
+  },
+];
+
+const MAX_CONTENT_WIDTH = 640;
+const HORIZONTAL_PADDING = 20;
+const GRID_GAP = 13;
+
+function useResponsiveGrid(windowWidth: number) {
+  return useMemo(() => {
+    const contentWidth = Math.min(windowWidth, MAX_CONTENT_WIDTH);
+    const gridWidth = contentWidth - HORIZONTAL_PADDING * 2;
+
+    // Más columnas a medida que hay más espacio (útil sobre todo en Web).
+    const columns = gridWidth >= 760 ? 4 : gridWidth >= 460 ? 3 : 2;
+    const itemWidth = (gridWidth - GRID_GAP * (columns - 1)) / columns;
+
+    return { contentWidth, gridWidth, itemWidth };
+  }, [windowWidth]);
+}
+
+function navigateToModule(key: ModuleKey) {
+  // TODO: sustituir por router.push(`/(app)/${key}`) cuando exista la pantalla.
+  console.log(`[home] navegar a módulo: ${key}`);
+}
 
 export default function HomeScreen() {
   const { session } = useAuth();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const { contentWidth, gridWidth, itemWidth } = useResponsiveGrid(width);
+
+  const today = useMemo(
+    () =>
+      new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+    []
+  );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>¡Bienvenido/a!</Text>
-      <Text style={styles.subtitle}>{session?.user.email}</Text>
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top, paddingBottom: insets.bottom + spacing.xl },
+        ]}
+      >
+        <View style={[styles.content, { width: contentWidth, alignSelf: 'center' }]}>
+          <View style={styles.header}>
+            <Text style={styles.kicker}>Familia de Cantira</Text>
+            <Text style={styles.greeting}>Hola, Maria</Text>
+            <Text style={styles.date}>{today}</Text>
 
-      <Text style={styles.placeholder}>
-        Aquí vivirá el panel principal: listas, calendario, presupuesto y comidas.
-      </Text>
+            {/* Provisional: hasta que exista la pantalla de Ajustes, dejamos
+                aquí un acceso mínimo para poder cerrar sesión. */}
+            <Pressable
+              onPress={() => supabase.auth.signOut()}
+              style={styles.signOutButton}
+              hitSlop={8}
+            >
+              <Text style={styles.signOutText}>Cerrar sesión</Text>
+            </Pressable>
+          </View>
 
-      <View style={styles.buttonWrapper}>
-        <PrimaryButton title="Cerrar sesión" onPress={() => supabase.auth.signOut()} />
-      </View>
+          <View style={styles.divider} />
+
+          <View style={[styles.grid, { width: gridWidth, gap: GRID_GAP }]}>
+            {MODULES.map((module) => (
+              <DashboardCard
+                key={module.key}
+                title={module.title}
+                subtitle={module.subtitle}
+                icon={module.icon}
+                variant={module.span === 'full' ? 'full' : 'half'}
+                accent={module.accent}
+                onPress={() => navigateToModule(module.key)}
+                style={{ width: module.span === 'full' ? gridWidth : itemWidth }}
+              />
+            ))}
+          </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
-    gap: 8,
+    backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1c1c1e',
+  scrollContent: {
+    flexGrow: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
+  content: {
+    maxWidth: MAX_CONTENT_WIDTH,
   },
-  placeholder: {
-    fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
-    marginBottom: 32,
+  header: {
+    paddingTop: 26,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingBottom: 6,
   },
-  buttonWrapper: {
-    alignSelf: 'stretch',
+  kicker: {
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.kicker.fontWeight,
+    fontSize: typography.kicker.fontSize,
+    letterSpacing: typography.kicker.letterSpacing,
+    textTransform: typography.kicker.textTransform,
+    color: colors.accent500,
+  },
+  greeting: {
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.h1.fontWeight,
+    fontSize: typography.h1.fontSize,
+    lineHeight: typography.h1.lineHeight,
+    marginTop: spacing.sm,
+    color: colors.textPrimary,
+  },
+  date: {
+    fontSize: typography.dateLabel.fontSize,
+    color: colors.neutral500,
+    marginTop: 6,
+    textTransform: 'capitalize',
+  },
+  signOutButton: {
+    marginTop: spacing.md,
+    alignSelf: 'flex-start',
+  },
+  signOutText: {
+    fontSize: 12,
+    color: colors.neutral500,
+    textDecorationLine: 'underline',
+  },
+  divider: {
+    height: 2,
+    backgroundColor: colors.divider,
+    marginTop: spacing.lg + 2,
+    marginHorizontal: HORIZONTAL_PADDING,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignSelf: 'center',
+    paddingTop: spacing.lg + 2,
+    paddingBottom: spacing.xl - 4,
   },
 });
