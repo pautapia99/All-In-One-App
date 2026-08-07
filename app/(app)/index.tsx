@@ -131,15 +131,14 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { contentWidth, gridWidth, itemWidth } = useResponsiveGrid(width);
 
-  const today = useMemo(
-    () =>
-      new Date().toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }),
-    []
-  );
+  const today = useMemo(() => {
+    const label = new Date().toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }, []);
 
   const modules = useMemo(
     () =>
@@ -253,7 +252,6 @@ function getStyles(colors: ColorPalette) {
       fontSize: typography.dateLabel.fontSize,
       color: colors.textMuted,
       marginTop: 6,
-      textTransform: 'capitalize',
     },
     settingsButton: {
       width: 40,

@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Banner, type BannerProps } from '../../components/Banner';
-import { BirthDatePicker } from '../../components/BirthDatePicker';
+import { CalendarDatePicker } from '../../components/CalendarDatePicker';
 import { ChevronLeftIcon } from '../../components/icons';
 import { SubmitButton } from '../../components/SubmitButton';
 import { useProfile } from '../../lib/ProfileProvider';
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Fecha de nacimiento</Text>
-            <BirthDatePicker value={birthDate} onChange={setBirthDate} />
+            <CalendarDatePicker value={birthDate} onChange={setBirthDate} />
           </View>
 
           <View style={styles.field}>
