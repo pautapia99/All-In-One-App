@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { useColors } from '../lib/ThemeProvider';
@@ -93,6 +94,7 @@ type Level = 'day' | 'month' | 'year';
 
 export function CalendarDatePicker({ value, onChange }: CalendarDatePickerProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const selected = parseIso(value);
 
@@ -145,17 +147,26 @@ export function CalendarDatePicker({ value, onChange }: CalendarDatePickerProps)
 
   return (
     <View>
-      <Pressable
-        onPress={open ? () => setOpen(false) : openPicker}
-        style={[styles.field, open && styles.fieldOpen]}
-      >
+      <Pressable onPress={openPicker} style={styles.field}>
         <CalendarIcon size={18} color={colors.iconDefault} strokeWidth={1.75} />
         <Text style={[styles.fieldText, !selected && styles.fieldPlaceholder]}>{displayLabel}</Text>
       </Pressable>
 
-      {open && (
-        <View style={styles.panel}>
-          {level === 'day' && (
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetTitleRow}>
+              <Text style={styles.sheetTitle}>Fecha de nacimiento</Text>
+              <Pressable onPress={() => setOpen(false)} hitSlop={8} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </Pressable>
+            </View>
+
+            {level === 'day' && (
             <>
               <View style={styles.header}>
                 <Pressable onPress={() => shiftMonth(-1)} style={styles.navButton} hitSlop={6}>
@@ -283,8 +294,9 @@ export function CalendarDatePicker({ value, onChange }: CalendarDatePickerProps)
               </View>
             </ScrollView>
           )}
-        </View>
-      )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -300,10 +312,6 @@ function getStyles(colors: ColorPalette) {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
     },
-    fieldOpen: {
-      borderBottomLeftRadius: 0,
-      borderBottomRightRadius: 0,
-    },
     fieldText: {
       fontSize: 16,
       color: colors.textPrimary,
@@ -311,13 +319,47 @@ function getStyles(colors: ColorPalette) {
     fieldPlaceholder: {
       color: colors.textMuted,
     },
-    panel: {
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
       backgroundColor: colors.surface,
-      borderTopWidth: 1,
-      borderTopColor: colors.divider2,
-      borderBottomLeftRadius: radii.card,
-      borderBottomRightRadius: radii.card,
-      padding: spacing.md,
+      borderTopLeftRadius: radii.card,
+      borderTopRightRadius: radii.card,
+      padding: spacing.lg,
+      maxWidth: 480,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.divider,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+    },
+    sheetTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    sheetTitle: {
+      fontFamily: typography.fontFamily,
+      fontWeight: '700',
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      paddingVertical: 4,
+    },
+    closeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.accent500,
     },
     header: {
       flexDirection: 'row',
