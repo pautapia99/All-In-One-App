@@ -1,7 +1,9 @@
 import type { ComponentType } from 'react';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { colors, radii, spacing, typography } from '../lib/theme';
+import { useColors } from '../lib/ThemeProvider';
+import { radii, spacing, typography, type ColorPalette } from '../lib/theme';
 import type { IconProps } from './icons';
 
 export type DashboardCardProps = {
@@ -25,6 +27,8 @@ export function DashboardCard({
   onPress,
   style,
 }: DashboardCardProps) {
+  const colors = useColors();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const isFull = variant === 'full';
 
   return (
@@ -44,7 +48,7 @@ export function DashboardCard({
           { backgroundColor: accent ? colors.accentSoftBg : colors.surfaceHover },
         ]}
       >
-        <Icon size={22} color={accent ? colors.accent500 : colors.neutral200} strokeWidth={1.75} />
+        <Icon size={22} color={accent ? colors.accent500 : colors.iconDefault} strokeWidth={1.75} />
       </View>
       <View>
         <Text style={styles.title}>{title}</Text>
@@ -54,43 +58,45 @@ export function DashboardCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.lg,
-  },
-  cardFull: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md + 2,
-  },
-  cardHalf: {
-    flexDirection: 'column',
-    gap: spacing.sm + 2,
-  },
-  cardPressed: {
-    transform: [{ scale: 0.97 }],
-    backgroundColor: colors.surfaceHover,
-  },
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.icon,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBoxFlexNone: {
-    flexShrink: 0,
-  },
-  title: {
-    fontSize: typography.cardTitle.fontSize,
-    fontWeight: typography.cardTitle.fontWeight,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: typography.cardSubtitle.fontSize,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-});
+function getStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.card,
+      padding: spacing.lg,
+    },
+    cardFull: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md + 2,
+    },
+    cardHalf: {
+      flexDirection: 'column',
+      gap: spacing.sm + 2,
+    },
+    cardPressed: {
+      transform: [{ scale: 0.97 }],
+      backgroundColor: colors.surfaceHover,
+    },
+    iconBox: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.icon,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconBoxFlexNone: {
+      flexShrink: 0,
+    },
+    title: {
+      fontSize: typography.cardTitle.fontSize,
+      fontWeight: typography.cardTitle.fontWeight,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: typography.cardSubtitle.fontSize,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+  });
+}

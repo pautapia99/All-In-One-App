@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,7 +14,8 @@ import { Banner as BannerView, type BannerProps } from '../../components/Banner'
 import { LogInIcon, UserPlusIcon, type IconProps } from '../../components/icons';
 import { SubmitButton } from '../../components/SubmitButton';
 import { useFamily } from '../../lib/FamilyProvider';
-import { colors, radii, spacing, typography } from '../../lib/theme';
+import { useColors } from '../../lib/ThemeProvider';
+import { radii, spacing, typography, type ColorPalette } from '../../lib/theme';
 import type { ComponentType } from 'react';
 
 type Mode = 'choose' | 'create' | 'join';
@@ -38,6 +39,8 @@ function mapFamilyError(message: string): string {
 
 export default function FamilySetupScreen() {
   const { createFamily, joinFamily } = useFamily();
+  const colors = useColors();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [mode, setMode] = useState<Mode>('choose');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -130,7 +133,7 @@ export default function FamilySetupScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Ej. Familia de Cantira"
-                placeholderTextColor={colors.neutral500}
+                placeholderTextColor={colors.textMuted}
                 value={name}
                 onChangeText={setName}
                 autoFocus
@@ -152,7 +155,7 @@ export default function FamilySetupScreen() {
               <TextInput
                 style={[styles.input, styles.codeInput]}
                 placeholder="ABC123"
-                placeholderTextColor={colors.neutral500}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={6}
@@ -180,13 +183,16 @@ function OptionCard({
   description: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.optionCard, pressed && styles.optionCardPressed]}
     >
       <View style={styles.optionIcon}>
-        <Icon size={22} color={colors.neutral200} strokeWidth={1.75} />
+        <Icon size={22} color={colors.iconDefault} strokeWidth={1.75} />
       </View>
       <View style={styles.optionText}>
         <Text style={styles.optionTitle}>{title}</Text>
@@ -196,88 +202,90 @@ function OptionCard({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 420,
-    alignSelf: 'center',
-  },
-  title: {
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.h1.fontWeight,
-    fontSize: 26,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral500,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl - 4,
-  },
-  back: {
-    fontSize: 13,
-    color: colors.neutral500,
-  },
-  options: {
-    gap: spacing.md,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md + 2,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.lg,
-  },
-  optionCardPressed: {
-    backgroundColor: colors.surfaceHover,
-    transform: [{ scale: 0.98 }],
-  },
-  optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.icon,
-    backgroundColor: colors.surfaceHover,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  optionText: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: typography.cardTitle.fontSize,
-    fontWeight: typography.cardTitle.fontWeight,
-    color: colors.textPrimary,
-  },
-  optionDescription: {
-    fontSize: 12.5,
-    color: colors.neutral500,
-    marginTop: 2,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  codeInput: {
-    fontSize: 22,
-    letterSpacing: 6,
-    textAlign: 'center',
-    fontWeight: '700',
-  },
-});
+function getStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    content: {
+      width: '100%',
+      maxWidth: 420,
+      alignSelf: 'center',
+    },
+    title: {
+      fontFamily: typography.fontFamily,
+      fontWeight: typography.h1.fontWeight,
+      fontSize: 26,
+      color: colors.textPrimary,
+      marginTop: spacing.sm,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+      marginBottom: spacing.xl - 4,
+    },
+    back: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    options: {
+      gap: spacing.md,
+    },
+    optionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md + 2,
+      backgroundColor: colors.surface,
+      borderRadius: radii.card,
+      padding: spacing.lg,
+    },
+    optionCardPressed: {
+      backgroundColor: colors.surfaceHover,
+      transform: [{ scale: 0.98 }],
+    },
+    optionIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: radii.icon,
+      backgroundColor: colors.surfaceHover,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    optionText: {
+      flex: 1,
+    },
+    optionTitle: {
+      fontSize: typography.cardTitle.fontSize,
+      fontWeight: typography.cardTitle.fontWeight,
+      color: colors.textPrimary,
+    },
+    optionDescription: {
+      fontSize: 12.5,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.card,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    codeInput: {
+      fontSize: 22,
+      letterSpacing: 6,
+      textAlign: 'center',
+      fontWeight: '700',
+    },
+  });
+}

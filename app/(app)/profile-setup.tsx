@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,36 +10,21 @@ import {
 } from 'react-native';
 
 import { Banner, type BannerProps } from '../../components/Banner';
+import { BirthDatePicker } from '../../components/BirthDatePicker';
 import { SubmitButton } from '../../components/SubmitButton';
 import { useProfile } from '../../lib/ProfileProvider';
-import { colors, radii, spacing, typography } from '../../lib/theme';
+import { useColors } from '../../lib/ThemeProvider';
+import { radii, spacing, typography, type ColorPalette } from '../../lib/theme';
 
 type BannerState = BannerProps | null;
 
-const DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-
-function parseBirthDate(input: string): string | null {
-  const match = DATE_RE.exec(input.trim());
-  if (!match) return null;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  const isRealDate =
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-  if (!isRealDate) return null;
-  if (date.getTime() > Date.now()) return null;
-
-  return `${year.toString().padStart(4, '0')}-${match[2]}-${match[1]}`;
-}
-
 export default function ProfileSetupScreen() {
   const { saveProfile } = useProfile();
+  const colors = useColors();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [birthDateText, setBirthDateText] = useState('');
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [alias, setAlias] = useState('');
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState<BannerState>(null);
@@ -51,13 +36,8 @@ export default function ProfileSetupScreen() {
       setBanner({ type: 'error', message: 'Rellena todos los campos.' });
       return;
     }
-
-    const birthDate = parseBirthDate(birthDateText);
     if (!birthDate) {
-      setBanner({
-        type: 'error',
-        message: 'La fecha de nacimiento no es válida. Usa el formato DD/MM/AAAA.',
-      });
+      setBanner({ type: 'error', message: 'Elige tu fecha de nacimiento.' });
       return;
     }
 
@@ -98,7 +78,7 @@ export default function ProfileSetupScreen() {
             <TextInput
               style={styles.input}
               placeholder="María"
-              placeholderTextColor={colors.neutral500}
+              placeholderTextColor={colors.textMuted}
               value={firstName}
               onChangeText={setFirstName}
               autoFocus
@@ -110,7 +90,7 @@ export default function ProfileSetupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Tapia"
-              placeholderTextColor={colors.neutral500}
+              placeholderTextColor={colors.textMuted}
               value={lastName}
               onChangeText={setLastName}
             />
@@ -118,14 +98,7 @@ export default function ProfileSetupScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Fecha de nacimiento</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor={colors.neutral500}
-              maxLength={10}
-              value={birthDateText}
-              onChangeText={setBirthDateText}
-            />
+            <BirthDatePicker value={birthDate} onChange={setBirthDate} />
           </View>
 
           <View style={styles.field}>
@@ -133,7 +106,7 @@ export default function ProfileSetupScreen() {
             <TextInput
               style={styles.input}
               placeholder="¿Cómo quieres que te llamemos?"
-              placeholderTextColor={colors.neutral500}
+              placeholderTextColor={colors.textMuted}
               value={alias}
               onChangeText={setAlias}
             />
@@ -146,47 +119,49 @@ export default function ProfileSetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 420,
-    alignSelf: 'center',
-  },
-  title: {
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.h1.fontWeight,
-    fontSize: 26,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral500,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl - 4,
-  },
-  field: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    fontSize: 12,
-    color: colors.neutral500,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-});
+function getStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    content: {
+      width: '100%',
+      maxWidth: 420,
+      alignSelf: 'center',
+    },
+    title: {
+      fontFamily: typography.fontFamily,
+      fontWeight: typography.h1.fontWeight,
+      fontSize: 26,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+      marginBottom: spacing.xl - 4,
+    },
+    field: {
+      marginBottom: spacing.md,
+    },
+    label: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 6,
+    },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.card,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+  });
+}

@@ -3,15 +3,16 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { FamilyProvider, useFamily } from '../../lib/FamilyProvider';
 import { ProfileProvider, useProfile } from '../../lib/ProfileProvider';
-import { colors } from '../../lib/theme';
+import { useColors } from '../../lib/ThemeProvider';
 
 function AppNavigator() {
   const { profile, isLoading: profileLoading } = useProfile();
   const { family, isLoading: familyLoading } = useFamily();
+  const colors = useColors();
 
   if (profileLoading || familyLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.accent500} />
       </View>
     );
@@ -30,6 +31,7 @@ function AppNavigator() {
       <Stack.Protected guard={!!profile && !!family}>
         <Stack.Screen name="index" />
         <Stack.Screen name="family" />
+        <Stack.Screen name="settings" />
       </Stack.Protected>
     </Stack>
   );
@@ -50,6 +52,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
   },
 });

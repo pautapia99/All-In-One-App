@@ -8,9 +8,10 @@ Una única base de código para **iOS, Android y Web**.
 
 > Estado actual: autenticación (email + contraseña), el **perfil** de usuario (nombre,
 > apellido, fecha de nacimiento, alias) pedido justo tras registrarse, el módulo de
-> **familia** (crear/unirse, código de invitación, lista de miembros) y la pantalla
-> principal (dashboard) ya están implementados. El resto de módulos (listas, calendario,
-> presupuesto, comidas...) todavía no.
+> **familia** (crear/unirse, código de invitación, lista de miembros), la pantalla
+> principal (dashboard) y una pantalla de **Ajustes** (editar perfil, idioma, modo
+> claro/oscuro, cerrar sesión) ya están implementados. El resto de módulos (listas,
+> calendario, presupuesto, comidas...) todavía no.
 
 ## Estructura del proyecto
 
@@ -24,12 +25,14 @@ app/                  Rutas de Expo Router (file-based routing)
     profile-setup.tsx      Onboarding: nombre, apellido, fecha de nacimiento, alias
     family-setup.tsx       Onboarding: crear familia / unirse con código
     family.tsx              "Mi familia": nombre, código de invitación, miembros
+    settings.tsx             Ajustes: editar perfil, idioma, modo claro/oscuro, cerrar sesión
 components/            Componentes de UI reutilizables (tarjetas, iconos, banners...)
 lib/                   Lógica compartida no visual
   supabase.ts            Cliente de Supabase (lee las credenciales de las env vars)
   AuthProvider.tsx        Contexto de React con la sesión de Supabase Auth
   ProfileProvider.tsx     Contexto de React con el perfil del usuario
   FamilyProvider.tsx      Contexto de React con la familia/miembros del usuario
+  ThemeProvider.tsx       Contexto de React con el modo claro/oscuro (persistido en el dispositivo)
   theme.ts                Tokens de diseño compartidos (colores, tipografía, espaciados)
 types/                 Tipos y declaraciones TypeScript compartidas
 supabase/migrations/   SQL de las tablas y políticas de seguridad (RLS) de Supabase
@@ -159,6 +162,17 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
   para que la operación sea atómica y el código de invitación se valide en el servidor.
 - Todos los módulos futuros (listas, calendario, presupuesto...) compartirán datos a
   través de `family_id`, apoyándose en este mismo esquema de familias/miembros.
+
+## Cómo funciona el modo claro/oscuro
+
+- `lib/theme.ts` define dos paletas con las mismas claves (`darkColors` / `lightColors`),
+  derivadas de la misma rampa de neutros del sistema de diseño — solo cambian los roles
+  semánticos (fondo, superficie, texto...); el color de acento de marca es igual en ambas.
+- `lib/ThemeProvider.tsx` guarda la preferencia del usuario en el dispositivo (vía
+  `AsyncStorage`, no en Supabase — es una preferencia de UI, no un dato familiar) y expone
+  `useColors()` (paleta activa) y `useThemeMode()` (modo actual + `setMode`).
+- Las pantallas leen los colores con `useColors()` en vez de importar una paleta fija, así
+  que cambian en caliente al tocar el interruptor Claro/Oscuro en Ajustes.
 
 ## Próximos pasos
 
