@@ -1,7 +1,7 @@
+import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import type { ComponentType } from 'react';
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +23,7 @@ import {
   type IconProps,
 } from '../../components/icons';
 import { useAuth } from '../../lib/AuthProvider';
+import { useFamily } from '../../lib/FamilyProvider';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing, typography } from '../../lib/theme';
 
@@ -52,7 +53,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'familia',
     title: 'Mi familia',
-    subtitle: '3 miembros',
+    subtitle: '', // se sustituye por el nº real de miembros al renderizar
     icon: UsersIcon,
     span: 'full',
   },
@@ -119,13 +120,10 @@ function useResponsiveGrid(windowWidth: number) {
   }, [windowWidth]);
 }
 
-function navigateToModule(key: ModuleKey) {
-  // TODO: sustituir por router.push(`/(app)/${key}`) cuando exista la pantalla.
-  console.log(`[home] navegar a módulo: ${key}`);
-}
-
 export default function HomeScreen() {
+  const router = useRouter();
   const { session } = useAuth();
+  const { members } = useFamily();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { contentWidth, gridWidth, itemWidth } = useResponsiveGrid(width);
@@ -139,6 +137,28 @@ export default function HomeScreen() {
       }),
     []
   );
+
+  const modules = useMemo(
+    () =>
+      MODULES.map((module) =>
+        module.key === 'familia'
+          ? {
+              ...module,
+              subtitle: `${members.length} ${members.length === 1 ? 'miembro' : 'miembros'}`,
+            }
+          : module
+      ),
+    [members.length]
+  );
+
+  function handleModulePress(key: ModuleKey) {
+    if (key === 'familia') {
+      router.push('/family');
+      return;
+    }
+    // TODO: sustituir por router.push cuando exista cada pantalla.
+    console.log(`[home] navegar a módulo: ${key}`);
+  }
 
   return (
     <View style={styles.screen}>
@@ -168,7 +188,7 @@ export default function HomeScreen() {
           <View style={styles.divider} />
 
           <View style={[styles.grid, { width: gridWidth, gap: GRID_GAP }]}>
-            {MODULES.map((module) => (
+            {modules.map((module) => (
               <DashboardCard
                 key={module.key}
                 title={module.title}
@@ -176,7 +196,7 @@ export default function HomeScreen() {
                 icon={module.icon}
                 variant={module.span === 'full' ? 'full' : 'half'}
                 accent={module.accent}
-                onPress={() => navigateToModule(module.key)}
+                onPress={() => handleModulePress(module.key)}
                 style={{ width: module.span === 'full' ? gridWidth : itemWidth }}
               />
             ))}
