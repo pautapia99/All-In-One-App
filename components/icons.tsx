@@ -1,4 +1,4 @@
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 
 export type IconProps = {
   size?: number;
@@ -97,6 +97,56 @@ export function BookOpenIcon(props: IconProps) {
     <Svg {...svgProps(props)}>
       <Path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22z" />
       <Path d="M4 4.5v15" />
+    </Svg>
+  );
+}
+
+export function UserPlusIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <Circle cx="8.5" cy="7" r="4" />
+      <Line x1="20" y1="8" x2="20" y2="14" />
+      <Line x1="23" y1="11" x2="17" y2="11" />
+    </Svg>
+  );
+}
+
+export function LogInIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+      <Polyline points="10 17 15 12 10 7" />
+      <Line x1="15" y1="12" x2="3" y2="12" />
+    </Svg>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <Path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Svg>
+  );
+}
+
+export function ShareIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Circle cx="18" cy="5" r="3" />
+      <Circle cx="6" cy="12" r="3" />
+      <Circle cx="18" cy="19" r="3" />
+      <Line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <Line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </Svg>
+  );
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Polyline points="15 18 9 12 15 6" />
     </Svg>
   );
 }
