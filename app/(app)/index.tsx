@@ -22,8 +22,8 @@ import {
   UsersIcon,
   type IconProps,
 } from '../../components/icons';
-import { useAuth } from '../../lib/AuthProvider';
 import { useFamily } from '../../lib/FamilyProvider';
+import { useProfile } from '../../lib/ProfileProvider';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing, typography } from '../../lib/theme';
 
@@ -122,8 +122,8 @@ function useResponsiveGrid(windowWidth: number) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session } = useAuth();
-  const { members } = useFamily();
+  const { family, members } = useFamily();
+  const { profile } = useProfile();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { contentWidth, gridWidth, itemWidth } = useResponsiveGrid(width);
@@ -170,8 +170,8 @@ export default function HomeScreen() {
       >
         <View style={[styles.content, { width: contentWidth, alignSelf: 'center' }]}>
           <View style={styles.header}>
-            <Text style={styles.kicker}>Familia de Cantira</Text>
-            <Text style={styles.greeting}>Hola, Maria</Text>
+            <Text style={styles.kicker}>{family?.name}</Text>
+            <Text style={styles.greeting}>Hola, {profile?.alias}</Text>
             <Text style={styles.date}>{today}</Text>
 
             {/* Provisional: hasta que exista la pantalla de Ajustes, dejamos
