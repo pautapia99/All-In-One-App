@@ -3,6 +3,13 @@
 # dependencies
 node_modules/
 
+# Lockfile: not committed because `npm install` regenerates slightly
+# different content depending on OS (Windows vs. Linux/macOS), which was
+# constantly blocking `git pull` with local-changes conflicts. Everyone
+# just runs `npm install` locally to get a lockfile that matches their
+# own machine.
+package-lock.json
+
 # Expo
 .expo/
 dist/
