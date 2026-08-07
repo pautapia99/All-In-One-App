@@ -53,12 +53,14 @@ grant execute on function public.is_family_member(uuid) to authenticated;
 
 -- ── RLS policies ─────────────────────────────────────────────────────────────
 
+drop policy if exists "Members can view their families" on public.families;
 create policy "Members can view their families"
 on public.families
 for select
 to authenticated
 using (public.is_family_member(id));
 
+drop policy if exists "Members can update their families" on public.families;
 create policy "Members can update their families"
 on public.families
 for update
@@ -69,12 +71,14 @@ with check (public.is_family_member(id));
 -- "Any authenticated user can create a family" — kept as a real table policy
 -- for completeness, though the app creates families through create_family()
 -- below (atomic: family row + creator's membership row together).
+drop policy if exists "Authenticated users can create families" on public.families;
 create policy "Authenticated users can create families"
 on public.families
 for insert
 to authenticated
 with check (created_by = auth.uid());
 
+drop policy if exists "Members can view their family's members" on public.family_members;
 create policy "Members can view their family's members"
 on public.family_members
 for select
