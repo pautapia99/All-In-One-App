@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { Banner, type BannerProps } from '../../components/Banner';
-import { BirthDatePicker } from '../../components/BirthDatePicker';
+import { CalendarDatePicker } from '../../components/CalendarDatePicker';
 import { SubmitButton } from '../../components/SubmitButton';
 import { useProfile } from '../../lib/ProfileProvider';
 import { useColors } from '../../lib/ThemeProvider';
@@ -98,7 +98,7 @@ export default function ProfileSetupScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Fecha de nacimiento</Text>
-            <BirthDatePicker value={birthDate} onChange={setBirthDate} />
+            <CalendarDatePicker value={birthDate} onChange={setBirthDate} />
           </View>
 
           <View style={styles.field}>
