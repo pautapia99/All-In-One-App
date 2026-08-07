@@ -10,13 +10,15 @@ import {
   View,
 } from 'react-native';
 
+import { Banner as BannerView, type BannerProps } from '../../components/Banner';
 import { LogInIcon, UserPlusIcon, type IconProps } from '../../components/icons';
+import { SubmitButton } from '../../components/SubmitButton';
 import { useFamily } from '../../lib/FamilyProvider';
 import { colors, radii, spacing, typography } from '../../lib/theme';
 import type { ComponentType } from 'react';
 
 type Mode = 'choose' | 'create' | 'join';
-type Banner = { type: 'error' | 'success'; message: string } | null;
+type Banner = BannerProps | null;
 
 function mapFamilyError(message: string): string {
   if (message.includes('invalid_code')) {
@@ -123,7 +125,7 @@ export default function FamilySetupScreen() {
               <Text style={styles.title}>Crear familia</Text>
               <Text style={styles.subtitle}>Ponle un nombre a tu familia.</Text>
 
-              {banner && <BannerView banner={banner} />}
+              {banner && <BannerView type={banner.type} message={banner.message} />}
 
               <TextInput
                 style={styles.input}
@@ -145,7 +147,7 @@ export default function FamilySetupScreen() {
               <Text style={styles.title}>Unirme con un código</Text>
               <Text style={styles.subtitle}>Introduce el código de invitación de tu familia.</Text>
 
-              {banner && <BannerView banner={banner} />}
+              {banner && <BannerView type={banner.type} message={banner.message} />}
 
               <TextInput
                 style={[styles.input, styles.codeInput]}
@@ -190,38 +192,6 @@ function OptionCard({
         <Text style={styles.optionTitle}>{title}</Text>
         <Text style={styles.optionDescription}>{description}</Text>
       </View>
-    </Pressable>
-  );
-}
-
-function BannerView({ banner }: { banner: NonNullable<Banner> }) {
-  return (
-    <View style={[styles.banner, banner.type === 'error' ? styles.bannerError : styles.bannerSuccess]}>
-      <Text style={styles.bannerText}>{banner.message}</Text>
-    </View>
-  );
-}
-
-function SubmitButton({
-  title,
-  loading,
-  onPress,
-}: {
-  title: string;
-  loading: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={loading}
-      style={({ pressed }) => [
-        styles.submitButton,
-        pressed && !loading && styles.submitButtonPressed,
-        loading && styles.submitButtonDisabled,
-      ]}
-    >
-      <Text style={styles.submitButtonText}>{loading ? 'Un momento…' : title}</Text>
     </Pressable>
   );
 }
@@ -309,38 +279,5 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
     textAlign: 'center',
     fontWeight: '700',
-  },
-  submitButton: {
-    backgroundColor: colors.accent500,
-    borderRadius: radii.card,
-    paddingVertical: spacing.md + 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitButtonPressed: {
-    backgroundColor: colors.accent600,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: colors.neutral100,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  banner: {
-    borderRadius: radii.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  bannerError: {
-    backgroundColor: colors.accentSoftBg,
-  },
-  bannerSuccess: {
-    backgroundColor: 'rgba(74,222,128,0.16)',
-  },
-  bannerText: {
-    fontSize: 13,
-    color: colors.textPrimary,
   },
 });
