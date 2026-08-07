@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AuthProvider, useAuth } from '../lib/AuthProvider';
+import { ThemeProvider } from '../lib/ThemeProvider';
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
@@ -29,9 +30,11 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

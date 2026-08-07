@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors, radii } from '../lib/theme';
+import { accent500, accent600, neutral100, radii } from '../lib/theme';
 
 export type SubmitButtonProps = {
   title: string;
@@ -26,20 +26,20 @@ export function SubmitButton({ title, loading, onPress }: SubmitButtonProps) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.accent500,
+    backgroundColor: accent500,
     borderRadius: radii.card,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pressed: {
-    backgroundColor: colors.accent600,
+    backgroundColor: accent600,
   },
   disabled: {
     opacity: 0.6,
   },
   text: {
-    color: colors.neutral100,
+    color: neutral100,
     fontSize: 16,
     fontWeight: '700',
   },

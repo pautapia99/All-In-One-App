@@ -19,13 +19,14 @@ import {
   ClockIcon,
   GiftIcon,
   ListChecksIcon,
+  SettingsIcon,
   UsersIcon,
   type IconProps,
 } from '../../components/icons';
 import { useFamily } from '../../lib/FamilyProvider';
 import { useProfile } from '../../lib/ProfileProvider';
-import { supabase } from '../../lib/supabase';
-import { colors, spacing, typography } from '../../lib/theme';
+import { useColors } from '../../lib/ThemeProvider';
+import { spacing, typography, type ColorPalette } from '../../lib/theme';
 
 // Módulos de la app. `route` queda vacío a propósito: las pantallas de destino
 // todavía no existen, así que por ahora solo registramos la navegación deseada.
@@ -124,6 +125,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { family, members } = useFamily();
   const { profile } = useProfile();
+  const colors = useColors();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { contentWidth, gridWidth, itemWidth } = useResponsiveGrid(width);
@@ -170,18 +173,18 @@ export default function HomeScreen() {
       >
         <View style={[styles.content, { width: contentWidth, alignSelf: 'center' }]}>
           <View style={styles.header}>
-            <Text style={styles.kicker}>{family?.name}</Text>
-            <Text style={styles.greeting}>Hola, {profile?.alias}</Text>
-            <Text style={styles.date}>{today}</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.kicker}>{family?.name}</Text>
+              <Text style={styles.greeting}>Hola, {profile?.alias}</Text>
+              <Text style={styles.date}>{today}</Text>
+            </View>
 
-            {/* Provisional: hasta que exista la pantalla de Ajustes, dejamos
-                aquí un acceso mínimo para poder cerrar sesión. */}
             <Pressable
-              onPress={() => supabase.auth.signOut()}
-              style={styles.signOutButton}
+              onPress={() => router.push('/settings')}
+              style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
               hitSlop={8}
             >
-              <Text style={styles.signOutText}>Cerrar sesión</Text>
+              <SettingsIcon size={20} color={colors.iconDefault} strokeWidth={1.75} />
             </Pressable>
           </View>
 
@@ -207,64 +210,75 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    maxWidth: MAX_CONTENT_WIDTH,
-  },
-  header: {
-    paddingTop: 26,
-    paddingHorizontal: HORIZONTAL_PADDING,
-    paddingBottom: 6,
-  },
-  kicker: {
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.kicker.fontWeight,
-    fontSize: typography.kicker.fontSize,
-    letterSpacing: typography.kicker.letterSpacing,
-    textTransform: typography.kicker.textTransform,
-    color: colors.accent500,
-  },
-  greeting: {
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.h1.fontWeight,
-    fontSize: typography.h1.fontSize,
-    lineHeight: typography.h1.lineHeight,
-    marginTop: spacing.sm,
-    color: colors.textPrimary,
-  },
-  date: {
-    fontSize: typography.dateLabel.fontSize,
-    color: colors.neutral500,
-    marginTop: 6,
-    textTransform: 'capitalize',
-  },
-  signOutButton: {
-    marginTop: spacing.md,
-    alignSelf: 'flex-start',
-  },
-  signOutText: {
-    fontSize: 12,
-    color: colors.neutral500,
-    textDecorationLine: 'underline',
-  },
-  divider: {
-    height: 2,
-    backgroundColor: colors.divider,
-    marginTop: spacing.lg + 2,
-    marginHorizontal: HORIZONTAL_PADDING,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignSelf: 'center',
-    paddingTop: spacing.lg + 2,
-    paddingBottom: spacing.xl - 4,
-  },
-});
+function getStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    content: {
+      maxWidth: MAX_CONTENT_WIDTH,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingTop: 26,
+      paddingHorizontal: HORIZONTAL_PADDING,
+      paddingBottom: 6,
+    },
+    headerText: {
+      flex: 1,
+    },
+    kicker: {
+      fontFamily: typography.fontFamily,
+      fontWeight: typography.kicker.fontWeight,
+      fontSize: typography.kicker.fontSize,
+      letterSpacing: typography.kicker.letterSpacing,
+      textTransform: typography.kicker.textTransform,
+      color: colors.accent500,
+    },
+    greeting: {
+      fontFamily: typography.fontFamily,
+      fontWeight: typography.h1.fontWeight,
+      fontSize: typography.h1.fontSize,
+      lineHeight: typography.h1.lineHeight,
+      marginTop: spacing.sm,
+      color: colors.textPrimary,
+    },
+    date: {
+      fontSize: typography.dateLabel.fontSize,
+      color: colors.textMuted,
+      marginTop: 6,
+      textTransform: 'capitalize',
+    },
+    settingsButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceHover,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    settingsButtonPressed: {
+      opacity: 0.75,
+    },
+    divider: {
+      height: 2,
+      backgroundColor: colors.divider,
+      marginTop: spacing.lg + 2,
+      marginHorizontal: HORIZONTAL_PADDING,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignSelf: 'center',
+      paddingTop: spacing.lg + 2,
+      paddingBottom: spacing.xl - 4,
+    },
+  });
+}
