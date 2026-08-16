@@ -32,6 +32,7 @@ function AppNavigator() {
         <Stack.Screen name="index" />
         <Stack.Screen name="family" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="lists" />
       </Stack.Protected>
     </Stack>
   );
