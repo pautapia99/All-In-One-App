@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import type { ComponentType } from 'react';
 import {
   Pressable,
@@ -27,6 +27,7 @@ import { useFamily } from '../../lib/FamilyProvider';
 import { useProfile } from '../../lib/ProfileProvider';
 import { useColors } from '../../lib/ThemeProvider';
 import { spacing, typography, type ColorPalette } from '../../lib/theme';
+import { useLists } from '../../lib/useLists';
 
 // Módulos de la app. `route` queda vacío a propósito: las pantallas de destino
 // todavía no existen, así que por ahora solo registramos la navegación deseada.
@@ -61,7 +62,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'listas',
     title: 'Listas',
-    subtitle: '2 listas activas',
+    subtitle: '', // se sustituye por el nº real de listas al renderizar
     icon: ListChecksIcon,
     span: 'one',
   },
@@ -125,6 +126,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const { family, members } = useFamily();
   const { profile } = useProfile();
+  const { lists, refresh: refreshLists } = useLists();
+
+  // Igual que la pantalla de Listas: sin esto, crear/borrar una lista en otra
+  // pantalla no se reflejaría en esta tarjeta hasta recargar la app entera.
+  useFocusEffect(
+    useCallback(() => {
+      refreshLists();
+    }, [refreshLists])
+  );
   const colors = useColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { width } = useWindowDimensions();
@@ -142,20 +152,31 @@ export default function HomeScreen() {
 
   const modules = useMemo(
     () =>
-      MODULES.map((module) =>
-        module.key === 'familia'
-          ? {
-              ...module,
-              subtitle: `${members.length} ${members.length === 1 ? 'miembro' : 'miembros'}`,
-            }
-          : module
-      ),
-    [members.length]
+      MODULES.map((module) => {
+        if (module.key === 'familia') {
+          return {
+            ...module,
+            subtitle: `${members.length} ${members.length === 1 ? 'miembro' : 'miembros'}`,
+          };
+        }
+        if (module.key === 'listas') {
+          return {
+            ...module,
+            subtitle: `${lists.length} ${lists.length === 1 ? 'lista activa' : 'listas activas'}`,
+          };
+        }
+        return module;
+      }),
+    [members.length, lists.length]
   );
 
   function handleModulePress(key: ModuleKey) {
     if (key === 'familia') {
       router.push('/family');
+      return;
+    }
+    if (key === 'listas') {
+      router.push('/lists');
       return;
     }
     // TODO: sustituir por router.push cuando exista cada pantalla.

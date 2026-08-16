@@ -8,10 +8,11 @@ Una única base de código para **iOS, Android y Web**.
 
 > Estado actual: autenticación (email + contraseña), el **perfil** de usuario (nombre,
 > apellido, fecha de nacimiento, alias) pedido justo tras registrarse, el módulo de
-> **familia** (crear/unirse, código de invitación, lista de miembros), la pantalla
-> principal (dashboard) y una pantalla de **Ajustes** (editar perfil, idioma, modo
-> claro/oscuro, cerrar sesión) ya están implementados. El resto de módulos (listas,
-> calendario, presupuesto, comidas...) todavía no.
+> **familia** (crear/unirse, código de invitación, lista de miembros), el módulo de
+> **listas** (privadas o compartidas, con sus items), la pantalla principal (dashboard)
+> y una pantalla de **Ajustes** (editar perfil, idioma, modo claro/oscuro, cerrar sesión)
+> ya están implementados. El resto de módulos (calendario, presupuesto, comidas,
+> recetas...) todavía no.
 
 ## Estructura del proyecto
 
@@ -26,6 +27,10 @@ app/                  Rutas de Expo Router (file-based routing)
     family-setup.tsx       Onboarding: crear familia / unirse con código
     family.tsx              "Mi familia": nombre, código de invitación, miembros
     settings.tsx             Ajustes: editar perfil, idioma, modo claro/oscuro, cerrar sesión
+    lists/                   Módulo de listas
+      _layout.tsx              Stack anidado (índice + detalle)
+      index.tsx                 Todas las listas visibles, filtrables por categoría
+      [id].tsx                   Detalle de una lista: items, añadir/marcar/borrar
 components/            Componentes de UI reutilizables (tarjetas, iconos, banners...)
 lib/                   Lógica compartida no visual
   supabase.ts            Cliente de Supabase (lee las credenciales de las env vars)
@@ -33,6 +38,7 @@ lib/                   Lógica compartida no visual
   ProfileProvider.tsx     Contexto de React con el perfil del usuario
   FamilyProvider.tsx      Contexto de React con la familia/miembros del usuario
   ThemeProvider.tsx       Contexto de React con el modo claro/oscuro (persistido en el dispositivo)
+  useLists.ts             Hook con las listas visibles para el usuario y su creación
   theme.ts                Tokens de diseño compartidos (colores, tipografía, espaciados)
 types/                 Tipos y declaraciones TypeScript compartidas
 supabase/migrations/   SQL de las tablas y políticas de seguridad (RLS) de Supabase
@@ -79,14 +85,16 @@ proveedor de Email esté activado para poder registrarte con email + contraseña
 
 ## 3. Configurar la base de datos
 
-Este proyecto necesita las tablas `profiles`, `families` y `family_members`, sus políticas de
-Row Level Security (RLS) y unas funciones RPC para crear/unirse a una familia de forma segura.
+Este proyecto necesita las tablas `profiles`, `families`, `family_members`, `lists` y
+`list_items`, sus políticas de Row Level Security (RLS) y unas funciones RPC para
+crear/unirse a una familia de forma segura.
 
 1. Ve a tu proyecto de Supabase → **SQL Editor**.
 2. Abre, en orden, cada uno de estos archivos de este repositorio, copia todo su contenido y
    pégalo en el editor, pulsando **Run** después de cada uno:
    1. [`supabase/migrations/20260807120000_family_module.sql`](./supabase/migrations/20260807120000_family_module.sql)
    2. [`supabase/migrations/20260807130000_profiles.sql`](./supabase/migrations/20260807130000_profiles.sql)
+   3. [`supabase/migrations/20260816180000_lists_module.sql`](./supabase/migrations/20260816180000_lists_module.sql)
 
 Esto crea:
 - La tabla `profiles` (nombre, apellido, fecha de nacimiento, alias), con RLS: cada usuario
@@ -101,8 +109,11 @@ Esto crea:
   algo que una política RLS por sí sola no puede expresar.
 - `get_family_members(target_family_id)`: devuelve el email de los miembros de una familia
   (los emails viven en `auth.users`, que no es accesible directamente desde el cliente).
+- Las tablas `lists` y `list_items`, con RLS: una lista `compartida` es visible/editable por
+  toda la familia; una `privada`, solo por quien la creó. `list_items` hereda la visibilidad
+  de su lista a través de `can_access_list()` (misma técnica que `is_family_member()`).
 
-Ambos archivos son seguros de volver a ejecutar si algo falla a medias (usan
+Todos los archivos son seguros de volver a ejecutar si algo falla a medias (usan
 `if not exists` / `drop ... if exists` en todo lo que no lo soporta de forma nativa).
 
 Si más adelante quieres aplicar esto con el CLI de Supabase en vez de pegarlo a mano, los
@@ -163,6 +174,23 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
 - Todos los módulos futuros (listas, calendario, presupuesto...) compartirán datos a
   través de `family_id`, apoyándose en este mismo esquema de familias/miembros.
 
+## Cómo funciona el módulo de listas
+
+- `lib/useLists.ts` expone las listas visibles para el usuario (`useLists()`) — privadas
+  propias más compartidas de su familia — con el recuento de items pendientes de cada una,
+  y `createList()`.
+- `app/(app)/lists/index.tsx`: todas las listas, filtrables por categoría (compra / tareas /
+  otros), con un botón `+` que abre `NewListSheet` (nombre, categoría, visibilidad).
+- `app/(app)/lists/[id].tsx`: detalle de una lista — marcar/desmarcar items, añadir uno
+  rápido, borrar items sueltos, o la lista entera (con confirmación vía `ConfirmModal`, ya
+  que `Alert.alert` no funciona en Web).
+- Como estas pantallas quedan montadas en la pila de navegación, tanto el índice de listas
+  como la tarjeta del dashboard refrescan sus datos con `useFocusEffect` cada vez que
+  vuelves a ellas — si no, los cambios hechos en el detalle (items añadidos/marcados) no se
+  verían reflejados hasta recargar la app entera.
+- Los inserts/updates/deletes van directos contra `lists`/`list_items` (no hacen falta RPCs
+  como en familia: aquí no hay ningún secreto que validar en el servidor, solo pertenencia).
+
 ## Cómo funciona el modo claro/oscuro
 
 - `lib/theme.ts` define dos paletas con las mismas claves (`darkColors` / `lightColors`),
@@ -176,6 +204,6 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
 
 ## Próximos pasos
 
-Los siguientes módulos por construir son: listas, calendario, presupuesto, comidas y
-recetas, cada uno con sus propias tablas (relacionadas con `families` vía `family_id`)
-y políticas RLS siguiendo el mismo patrón que `families`/`family_members`.
+Los siguientes módulos por construir son: calendario, presupuesto, comidas y recetas, cada
+uno con sus propias tablas (relacionadas con `families` vía `family_id`) y políticas RLS
+siguiendo el mismo patrón que `families`/`family_members` y `lists`/`list_items`.

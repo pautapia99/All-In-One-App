@@ -167,3 +167,59 @@ export function SettingsIcon(props: IconProps) {
     </Svg>
   );
 }
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Polyline points="20 6 9 17 4 12" />
+    </Svg>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Polyline points="3 6 5 6 21 6" />
+      <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <Line x1="10" y1="11" x2="10" y2="17" />
+      <Line x1="14" y1="11" x2="14" y2="17" />
+    </Svg>
+  );
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </Svg>
+  );
+}
+
+export function ShoppingBagIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <Line x1="3" y1="6" x2="21" y2="6" />
+      <Path d="M16 10a4 4 0 0 1-8 0" />
+    </Svg>
+  );
+}
+
+export function TagIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <Line x1="7" y1="7" x2="7.01" y2="7" />
+    </Svg>
+  );
+}
+
+export function PlusIcon(props: IconProps) {
+  return (
+    <Svg {...svgProps(props)}>
+      <Line x1="12" y1="5" x2="12" y2="19" />
+      <Line x1="5" y1="12" x2="19" y2="12" />
+    </Svg>
+  );
+}
