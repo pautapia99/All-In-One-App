@@ -23,10 +23,12 @@ import {
   UsersIcon,
   type IconProps,
 } from '../../components/icons';
+import { startOfDay } from '../../lib/calendarUtils';
 import { useFamily } from '../../lib/FamilyProvider';
 import { useProfile } from '../../lib/ProfileProvider';
 import { useColors } from '../../lib/ThemeProvider';
 import { spacing, typography, type ColorPalette } from '../../lib/theme';
+import { useEvents } from '../../lib/useEvents';
 import { useLists } from '../../lib/useLists';
 
 // Módulos de la app. `route` queda vacío a propósito: las pantallas de destino
@@ -69,7 +71,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'calendario',
     title: 'Calendario',
-    subtitle: 'Próximo evento: hoy',
+    subtitle: '', // se sustituye por el próximo evento real al renderizar
     icon: CalendarIcon,
     span: 'one',
     accent: true,
@@ -127,13 +129,16 @@ export default function HomeScreen() {
   const { family, members } = useFamily();
   const { profile } = useProfile();
   const { lists, refresh: refreshLists } = useLists();
+  const { events, refresh: refreshEvents } = useEvents();
 
-  // Igual que la pantalla de Listas: sin esto, crear/borrar una lista en otra
-  // pantalla no se reflejaría en esta tarjeta hasta recargar la app entera.
+  // Igual que la pantalla de Listas: sin esto, crear/borrar una lista o un
+  // evento en otra pantalla no se reflejaría en esta tarjeta hasta recargar
+  // la app entera.
   useFocusEffect(
     useCallback(() => {
       refreshLists();
-    }, [refreshLists])
+      refreshEvents();
+    }, [refreshLists, refreshEvents])
   );
   const colors = useColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -150,6 +155,22 @@ export default function HomeScreen() {
     return label.charAt(0).toUpperCase() + label.slice(1);
   }, []);
 
+  const nextEventSubtitle = useMemo(() => {
+    const today = startOfDay(new Date());
+    const upcoming = events
+      .filter((event) => startOfDay(new Date(event.end_at)).getTime() >= today.getTime())
+      .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+    if (upcoming.length === 0) return 'Sin eventos próximos';
+
+    const next = upcoming[0];
+    const daysUntil = Math.round(
+      (startOfDay(new Date(next.start_at)).getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
+    );
+    if (daysUntil <= 0) return `Próximo: ${next.title} hoy`;
+    if (daysUntil === 1) return `Próximo: ${next.title} mañana`;
+    return `Próximo: ${next.title} en ${daysUntil} días`;
+  }, [events]);
+
   const modules = useMemo(
     () =>
       MODULES.map((module) => {
@@ -165,9 +186,12 @@ export default function HomeScreen() {
             subtitle: `${lists.length} ${lists.length === 1 ? 'lista activa' : 'listas activas'}`,
           };
         }
+        if (module.key === 'calendario') {
+          return { ...module, subtitle: nextEventSubtitle };
+        }
         return module;
       }),
-    [members.length, lists.length]
+    [members.length, lists.length, nextEventSubtitle]
   );
 
   function handleModulePress(key: ModuleKey) {
@@ -177,6 +201,10 @@ export default function HomeScreen() {
     }
     if (key === 'listas') {
       router.push('/lists');
+      return;
+    }
+    if (key === 'calendario') {
+      router.push('/calendar');
       return;
     }
     // TODO: sustituir por router.push cuando exista cada pantalla.

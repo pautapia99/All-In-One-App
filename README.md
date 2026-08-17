@@ -9,10 +9,11 @@ Una única base de código para **iOS, Android y Web**.
 > Estado actual: autenticación (email + contraseña), el **perfil** de usuario (nombre,
 > apellido, fecha de nacimiento, alias) pedido justo tras registrarse, el módulo de
 > **familia** (crear/unirse, código de invitación, lista de miembros), el módulo de
-> **listas** (privadas o compartidas, con sus items), la pantalla principal (dashboard)
-> y una pantalla de **Ajustes** (editar perfil, idioma, modo claro/oscuro, cerrar sesión)
-> ya están implementados. El resto de módulos (calendario, presupuesto, comidas,
-> recetas...) todavía no.
+> **listas** (privadas o compartidas, con sus items), el módulo de **calendario**
+> (eventos privados o compartidos, vistas mensual/semanal/diaria), la pantalla
+> principal (dashboard) y una pantalla de **Ajustes** (editar perfil, idioma, modo
+> claro/oscuro, cerrar sesión) ya están implementados. El resto de módulos
+> (presupuesto, comidas, recetas...) todavía no.
 
 ## Estructura del proyecto
 
@@ -31,7 +32,13 @@ app/                  Rutas de Expo Router (file-based routing)
       _layout.tsx              Stack anidado (índice + detalle)
       index.tsx                 Todas las listas visibles, filtrables por categoría
       [id].tsx                   Detalle de una lista: items, añadir/marcar/borrar
+    calendar/                Módulo de calendario
+      _layout.tsx              Stack anidado (por ahora solo la pantalla principal)
+      index.tsx                  Vistas mensual/semanal/diaria, crear/editar/borrar eventos
 components/            Componentes de UI reutilizables (tarjetas, iconos, banners...)
+  CalendarDatePicker.tsx  Selector de fecha en bottom sheet (perfil y eventos)
+  EventFormSheet.tsx      Formulario de crear/editar evento (calendario)
+  TimePickerField.tsx     Selector de hora en bottom sheet (calendario)
 lib/                   Lógica compartida no visual
   supabase.ts            Cliente de Supabase (lee las credenciales de las env vars)
   AuthProvider.tsx        Contexto de React con la sesión de Supabase Auth
@@ -39,6 +46,8 @@ lib/                   Lógica compartida no visual
   FamilyProvider.tsx      Contexto de React con la familia/miembros del usuario
   ThemeProvider.tsx       Contexto de React con el modo claro/oscuro (persistido en el dispositivo)
   useLists.ts             Hook con las listas visibles para el usuario y su creación
+  useEvents.ts            Hook con los eventos visibles para el usuario y su CRUD
+  calendarUtils.ts         Helpers de fechas (semana en lunes, franjas horarias...)
   theme.ts                Tokens de diseño compartidos (colores, tipografía, espaciados)
 types/                 Tipos y declaraciones TypeScript compartidas
 supabase/migrations/   SQL de las tablas y políticas de seguridad (RLS) de Supabase
@@ -85,9 +94,9 @@ proveedor de Email esté activado para poder registrarte con email + contraseña
 
 ## 3. Configurar la base de datos
 
-Este proyecto necesita las tablas `profiles`, `families`, `family_members`, `lists` y
-`list_items`, sus políticas de Row Level Security (RLS) y unas funciones RPC para
-crear/unirse a una familia de forma segura.
+Este proyecto necesita las tablas `profiles`, `families`, `family_members`, `lists`,
+`list_items` y `events`, sus políticas de Row Level Security (RLS) y unas funciones RPC
+para crear/unirse a una familia de forma segura.
 
 1. Ve a tu proyecto de Supabase → **SQL Editor**.
 2. Abre, en orden, cada uno de estos archivos de este repositorio, copia todo su contenido y
@@ -95,6 +104,7 @@ crear/unirse a una familia de forma segura.
    1. [`supabase/migrations/20260807120000_family_module.sql`](./supabase/migrations/20260807120000_family_module.sql)
    2. [`supabase/migrations/20260807130000_profiles.sql`](./supabase/migrations/20260807130000_profiles.sql)
    3. [`supabase/migrations/20260816180000_lists_module.sql`](./supabase/migrations/20260816180000_lists_module.sql)
+   4. [`supabase/migrations/20260816190000_calendar_module.sql`](./supabase/migrations/20260816190000_calendar_module.sql)
 
 Esto crea:
 - La tabla `profiles` (nombre, apellido, fecha de nacimiento, alias), con RLS: cada usuario
@@ -112,6 +122,9 @@ Esto crea:
 - Las tablas `lists` y `list_items`, con RLS: una lista `compartida` es visible/editable por
   toda la familia; una `privada`, solo por quien la creó. `list_items` hereda la visibilidad
   de su lista a través de `can_access_list()` (misma técnica que `is_family_member()`).
+- La tabla `events`, con RLS: un evento `compartido` es visible/editable por toda la
+  familia; uno `privado`, solo por quien lo creó (mismo patrón que `lists`, reutilizando
+  `is_family_member()` directamente ya que aquí no hay ninguna tabla hija).
 
 Todos los archivos son seguros de volver a ejecutar si algo falla a medias (usan
 `if not exists` / `drop ... if exists` en todo lo que no lo soporta de forma nativa).
@@ -191,6 +204,30 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
 - Los inserts/updates/deletes van directos contra `lists`/`list_items` (no hacen falta RPCs
   como en familia: aquí no hay ningún secreto que validar en el servidor, solo pertenencia).
 
+## Cómo funciona el módulo de calendario
+
+- `lib/useEvents.ts` expone los eventos visibles para el usuario (`useEvents()`) — privados
+  propios más compartidos de su familia — y `createEvent()` / `updateEvent()` / `deleteEvent()`.
+- `lib/calendarUtils.ts` centraliza los cálculos de fechas: semanas que empiezan en lunes,
+  la rejilla 6×7 de la vista mensual, y los helpers que construyen `start_at`/`end_at` a
+  partir de la fecha y hora locales elegidas en el formulario (usando el constructor
+  `Date(año, mes, día, hora, minuto)` + `toISOString()`, para que el evento se guarde y se
+  vuelva a leer con la misma hora local sin importar la zona horaria del dispositivo).
+- `app/(app)/calendar/index.tsx`: selector Mensual/Semanal/Diario, navegación anterior/
+  siguiente + botón "Hoy", y las tres vistas:
+  - **Mensual**: rejilla del mes con un punto en los días con eventos; al tocar un día se
+    listan sus eventos debajo.
+  - **Semanal**: columnas de lunes a domingo con los eventos posicionados por hora, y una
+    fila aparte arriba para los eventos "todo el día".
+  - **Diaria**: la misma franja horaria que la semanal, pero con una sola columna.
+- `components/EventFormSheet.tsx`: formulario de crear/editar evento (título, fecha vía
+  `CalendarDatePicker`, interruptor "todo el día" que oculta las horas, `TimePickerField`
+  para la hora de inicio/fin, y visibilidad privado/compartido); en modo edición añade
+  "Eliminar evento" con confirmación vía `ConfirmModal`.
+- Igual que en listas, tanto la pantalla de calendario como la tarjeta del dashboard
+  refrescan sus datos con `useFocusEffect` para no quedarse con información desactualizada
+  al volver de crear/editar un evento.
+
 ## Cómo funciona el modo claro/oscuro
 
 - `lib/theme.ts` define dos paletas con las mismas claves (`darkColors` / `lightColors`),
@@ -204,6 +241,6 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
 
 ## Próximos pasos
 
-Los siguientes módulos por construir son: calendario, presupuesto, comidas y recetas, cada
-uno con sus propias tablas (relacionadas con `families` vía `family_id`) y políticas RLS
-siguiendo el mismo patrón que `families`/`family_members` y `lists`/`list_items`.
+Los siguientes módulos por construir son: presupuesto, comidas y recetas, cada uno con sus
+propias tablas (relacionadas con `families` vía `family_id`) y políticas RLS siguiendo el
+mismo patrón que `families`/`family_members`, `lists`/`list_items` y `events`.
