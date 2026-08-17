@@ -23,12 +23,14 @@ import {
   UsersIcon,
   type IconProps,
 } from '../../components/icons';
+import { formatEuro } from '../../lib/budgetUtils';
 import { startOfDay } from '../../lib/calendarUtils';
 import { useFamily } from '../../lib/FamilyProvider';
 import { useProfile } from '../../lib/ProfileProvider';
 import { useColors } from '../../lib/ThemeProvider';
 import { spacing, typography, type ColorPalette } from '../../lib/theme';
 import { useBirthdays } from '../../lib/useBirthdays';
+import { useBudget } from '../../lib/useBudget';
 import { useEvents } from '../../lib/useEvents';
 import { useLists } from '../../lib/useLists';
 
@@ -88,7 +90,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'presupuesto',
     title: 'Presupuesto',
-    subtitle: 'Gastado este mes: 450 €',
+    subtitle: '', // se sustituye por el gasto real del mes al renderizar
     icon: BarChartIcon,
     span: 'one',
   },
@@ -132,16 +134,18 @@ export default function HomeScreen() {
   const { lists, refresh: refreshLists } = useLists();
   const { events, refresh: refreshEvents } = useEvents();
   const { entries: birthdays, refresh: refreshBirthdays } = useBirthdays();
+  const { totalSpent, refresh: refreshBudget } = useBudget();
 
   // Igual que la pantalla de Listas: sin esto, crear/borrar una lista, un
-  // evento o un cumpleaños en otra pantalla no se reflejaría en esta tarjeta
-  // hasta recargar la app entera.
+  // evento, un cumpleaños o un gasto en otra pantalla no se reflejaría en
+  // esta tarjeta hasta recargar la app entera.
   useFocusEffect(
     useCallback(() => {
       refreshLists();
       refreshEvents();
       refreshBirthdays();
-    }, [refreshLists, refreshEvents, refreshBirthdays])
+      refreshBudget();
+    }, [refreshLists, refreshEvents, refreshBirthdays, refreshBudget])
   );
   const colors = useColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -203,9 +207,12 @@ export default function HomeScreen() {
         if (module.key === 'cumpleanos') {
           return { ...module, subtitle: nextBirthdaySubtitle };
         }
+        if (module.key === 'presupuesto') {
+          return { ...module, subtitle: `Gastado este mes: ${formatEuro(totalSpent)}` };
+        }
         return module;
       }),
-    [members.length, lists.length, nextEventSubtitle, nextBirthdaySubtitle]
+    [members.length, lists.length, nextEventSubtitle, nextBirthdaySubtitle, totalSpent]
   );
 
   function handleModulePress(key: ModuleKey) {
@@ -223,6 +230,10 @@ export default function HomeScreen() {
     }
     if (key === 'cumpleanos') {
       router.push('/birthdays');
+      return;
+    }
+    if (key === 'presupuesto') {
+      router.push('/budget');
       return;
     }
     // TODO: sustituir por router.push cuando exista cada pantalla.

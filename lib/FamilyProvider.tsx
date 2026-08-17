@@ -21,6 +21,7 @@ export type Family = {
 export type FamilyMember = {
   user_id: string;
   email: string | null;
+  alias: string | null;
   joined_at: string;
 };
 
