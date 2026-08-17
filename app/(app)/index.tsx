@@ -28,6 +28,7 @@ import { useFamily } from '../../lib/FamilyProvider';
 import { useProfile } from '../../lib/ProfileProvider';
 import { useColors } from '../../lib/ThemeProvider';
 import { spacing, typography, type ColorPalette } from '../../lib/theme';
+import { useBirthdays } from '../../lib/useBirthdays';
 import { useEvents } from '../../lib/useEvents';
 import { useLists } from '../../lib/useLists';
 
@@ -79,7 +80,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'cumpleanos',
     title: 'Cumpleaños',
-    subtitle: 'Cumpleaños de Koda en 5 días',
+    subtitle: '', // se sustituye por el próximo cumpleaños real al renderizar
     icon: GiftIcon,
     span: 'one',
     accent: true,
@@ -130,15 +131,17 @@ export default function HomeScreen() {
   const { profile } = useProfile();
   const { lists, refresh: refreshLists } = useLists();
   const { events, refresh: refreshEvents } = useEvents();
+  const { entries: birthdays, refresh: refreshBirthdays } = useBirthdays();
 
-  // Igual que la pantalla de Listas: sin esto, crear/borrar una lista o un
-  // evento en otra pantalla no se reflejaría en esta tarjeta hasta recargar
-  // la app entera.
+  // Igual que la pantalla de Listas: sin esto, crear/borrar una lista, un
+  // evento o un cumpleaños en otra pantalla no se reflejaría en esta tarjeta
+  // hasta recargar la app entera.
   useFocusEffect(
     useCallback(() => {
       refreshLists();
       refreshEvents();
-    }, [refreshLists, refreshEvents])
+      refreshBirthdays();
+    }, [refreshLists, refreshEvents, refreshBirthdays])
   );
   const colors = useColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -171,6 +174,14 @@ export default function HomeScreen() {
     return `Próximo: ${next.title} en ${daysUntil} días`;
   }, [events]);
 
+  const nextBirthdaySubtitle = useMemo(() => {
+    if (birthdays.length === 0) return 'Sin cumpleaños próximos';
+    const next = birthdays[0];
+    if (next.daysUntil === 0) return `${next.name} hoy`;
+    if (next.daysUntil === 1) return `${next.name} mañana`;
+    return `${next.name} en ${next.daysUntil} días`;
+  }, [birthdays]);
+
   const modules = useMemo(
     () =>
       MODULES.map((module) => {
@@ -189,9 +200,12 @@ export default function HomeScreen() {
         if (module.key === 'calendario') {
           return { ...module, subtitle: nextEventSubtitle };
         }
+        if (module.key === 'cumpleanos') {
+          return { ...module, subtitle: nextBirthdaySubtitle };
+        }
         return module;
       }),
-    [members.length, lists.length, nextEventSubtitle]
+    [members.length, lists.length, nextEventSubtitle, nextBirthdaySubtitle]
   );
 
   function handleModulePress(key: ModuleKey) {
@@ -205,6 +219,10 @@ export default function HomeScreen() {
     }
     if (key === 'calendario') {
       router.push('/calendar');
+      return;
+    }
+    if (key === 'cumpleanos') {
+      router.push('/birthdays');
       return;
     }
     // TODO: sustituir por router.push cuando exista cada pantalla.

@@ -10,10 +10,11 @@ Una única base de código para **iOS, Android y Web**.
 > apellido, fecha de nacimiento, alias) pedido justo tras registrarse, el módulo de
 > **familia** (crear/unirse, código de invitación, lista de miembros), el módulo de
 > **listas** (privadas o compartidas, con sus items), el módulo de **calendario**
-> (eventos privados o compartidos, vistas mensual/semanal/diaria), la pantalla
-> principal (dashboard) y una pantalla de **Ajustes** (editar perfil, idioma, modo
-> claro/oscuro, cerrar sesión) ya están implementados. El resto de módulos
-> (presupuesto, comidas, recetas...) todavía no.
+> (eventos privados o compartidos, vistas mensual/semanal/diaria), el módulo de
+> **cumpleaños** (combina los de los miembros de la familia con los añadidos a mano),
+> la pantalla principal (dashboard) y una pantalla de **Ajustes** (editar perfil,
+> idioma, modo claro/oscuro, cerrar sesión) ya están implementados. El resto de
+> módulos (presupuesto, comidas, recetas...) todavía no.
 
 ## Estructura del proyecto
 
@@ -35,10 +36,14 @@ app/                  Rutas de Expo Router (file-based routing)
     calendar/                Módulo de calendario
       _layout.tsx              Stack anidado (por ahora solo la pantalla principal)
       index.tsx                  Vistas mensual/semanal/diaria, crear/editar/borrar eventos
+    birthdays/               Módulo de cumpleaños
+      _layout.tsx              Stack anidado (por ahora solo la pantalla principal)
+      index.tsx                  Lista combinada (familia + añadidos a mano), crear/editar/borrar
 components/            Componentes de UI reutilizables (tarjetas, iconos, banners...)
-  CalendarDatePicker.tsx  Selector de fecha en bottom sheet (perfil y eventos)
+  CalendarDatePicker.tsx  Selector de fecha en bottom sheet (perfil, eventos y cumpleaños)
   EventFormSheet.tsx      Formulario de crear/editar evento (calendario)
   TimePickerField.tsx     Selector de hora en bottom sheet (calendario)
+  BirthdayFormSheet.tsx   Formulario de crear/editar cumpleaños manual
 lib/                   Lógica compartida no visual
   supabase.ts            Cliente de Supabase (lee las credenciales de las env vars)
   AuthProvider.tsx        Contexto de React con la sesión de Supabase Auth
@@ -47,6 +52,7 @@ lib/                   Lógica compartida no visual
   ThemeProvider.tsx       Contexto de React con el modo claro/oscuro (persistido en el dispositivo)
   useLists.ts             Hook con las listas visibles para el usuario y su creación
   useEvents.ts            Hook con los eventos visibles para el usuario y su CRUD
+  useBirthdays.ts          Hook con la lista combinada de cumpleaños y su CRUD manual
   calendarUtils.ts         Helpers de fechas (semana en lunes, franjas horarias...)
   theme.ts                Tokens de diseño compartidos (colores, tipografía, espaciados)
 types/                 Tipos y declaraciones TypeScript compartidas
@@ -95,8 +101,8 @@ proveedor de Email esté activado para poder registrarte con email + contraseña
 ## 3. Configurar la base de datos
 
 Este proyecto necesita las tablas `profiles`, `families`, `family_members`, `lists`,
-`list_items` y `events`, sus políticas de Row Level Security (RLS) y unas funciones RPC
-para crear/unirse a una familia de forma segura.
+`list_items`, `events` y `birthdays`, sus políticas de Row Level Security (RLS) y unas
+funciones RPC para crear/unirse a una familia de forma segura.
 
 1. Ve a tu proyecto de Supabase → **SQL Editor**.
 2. Abre, en orden, cada uno de estos archivos de este repositorio, copia todo su contenido y
@@ -105,6 +111,7 @@ para crear/unirse a una familia de forma segura.
    2. [`supabase/migrations/20260807130000_profiles.sql`](./supabase/migrations/20260807130000_profiles.sql)
    3. [`supabase/migrations/20260816180000_lists_module.sql`](./supabase/migrations/20260816180000_lists_module.sql)
    4. [`supabase/migrations/20260816190000_calendar_module.sql`](./supabase/migrations/20260816190000_calendar_module.sql)
+   5. [`supabase/migrations/20260817120000_birthdays_module.sql`](./supabase/migrations/20260817120000_birthdays_module.sql)
 
 Esto crea:
 - La tabla `profiles` (nombre, apellido, fecha de nacimiento, alias), con RLS: cada usuario
@@ -125,6 +132,11 @@ Esto crea:
 - La tabla `events`, con RLS: un evento `compartido` es visible/editable por toda la
   familia; uno `privado`, solo por quien lo creó (mismo patrón que `lists`, reutilizando
   `is_family_member()` directamente ya que aquí no hay ninguna tabla hija).
+- La tabla `birthdays` (cumpleaños añadidos a mano, para gente que no tiene cuenta en la
+  app), con RLS: visibles/editables por cualquier miembro de la familia, sin distinción
+  privado/compartido. `get_family_member_birthdays(target_family_id)`: devuelve nombre y
+  fecha de nacimiento de los miembros de una familia (igual que `get_family_members`, hace
+  falta una función porque `profiles` solo deja ver tu propia fila por RLS).
 
 Todos los archivos son seguros de volver a ejecutar si algo falla a medias (usan
 `if not exists` / `drop ... if exists` en todo lo que no lo soporta de forma nativa).
@@ -228,6 +240,25 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
   refrescan sus datos con `useFocusEffect` para no quedarse con información desactualizada
   al volver de crear/editar un evento.
 
+## Cómo funciona el módulo de cumpleaños
+
+- `lib/useBirthdays.ts` combina dos fuentes en una sola lista ordenada por proximidad: los
+  miembros de la familia (vía la RPC `get_family_member_birthdays`, ya que `profiles` no es
+  legible entre usuarios) y los cumpleaños de la tabla `birthdays`, añadidos a mano para
+  quien no tiene cuenta en la app.
+- Como `birth_date` es una columna `date` normal, un cumpleaños manual sin año conocido
+  guarda un año "centinela" (1904, un año bisiesto lejano que ningún familiar real puede
+  tener) en vez de un año real — `UNKNOWN_BIRTH_YEAR` en el mismo archivo. El formulario
+  (`components/BirthdayFormSheet.tsx`) nunca enseña ese año al usuario: se elige el día y
+  el mes con el mismo `CalendarDatePicker` de siempre, y el año que se ve en el selector se
+  descarta al guardar si el interruptor "Sé el año de nacimiento" está apagado.
+- Para cada persona se calculan los días que faltan hasta su próximo cumpleaños (si ya pasó
+  este año, se calcula para el que viene) y, si se conoce el año, la edad que cumplirá.
+- `app/(app)/birthdays/index.tsx`: lista con nombre, fecha, cuenta atrás ("En 5 días",
+  "Mañana", "¡Hoy!") y la edad si se conoce, distinguiendo con un icono si es un miembro de
+  la familia o uno añadido a mano. Solo los añadidos a mano se pueden tocar para editar o
+  borrar — los de miembros de la familia vienen de su perfil y se editan desde ahí.
+
 ## Cómo funciona el modo claro/oscuro
 
 - `lib/theme.ts` define dos paletas con las mismas claves (`darkColors` / `lightColors`),
@@ -243,4 +274,4 @@ Para probar en un dispositivo físico sin instalar nada nativo, instala la app *
 
 Los siguientes módulos por construir son: presupuesto, comidas y recetas, cada uno con sus
 propias tablas (relacionadas con `families` vía `family_id`) y políticas RLS siguiendo el
-mismo patrón que `families`/`family_members`, `lists`/`list_items` y `events`.
+mismo patrón que `families`/`family_members`, `lists`/`list_items`, `events` y `birthdays`.

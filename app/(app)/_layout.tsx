@@ -34,6 +34,7 @@ function AppNavigator() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="lists" />
         <Stack.Screen name="calendar" />
+        <Stack.Screen name="birthdays" />
       </Stack.Protected>
     </Stack>
   );
